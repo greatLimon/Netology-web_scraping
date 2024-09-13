@@ -5,15 +5,19 @@
 # Выведите в консоль список подходящих статей в формате: <дата> – <заголовок> – <ссылка>.
 import requests
 import bs4
+from fake_headers import Headers
 
 def get_url()->str:
     return 'https://habr.com/ru/all/'
+
+def get_fake_headers():
+    return Headers(browser='chrome', os='win').generate()
 
 def parce(key_word:str, pages:int = 10)->bool:
     url = get_url()
     for n in range(pages):
         page = f'page{n+1}/'
-        response = requests.get(url+page)
+        response = requests.get(url+page, headers=get_fake_headers())
         if response.status_code == 200:
             soup = bs4.BeautifulSoup(response.text, features='lxml')
             articles = soup.findAll('div', class_='tm-article-snippet tm-article-snippet')
@@ -28,12 +32,15 @@ def parce(key_word:str, pages:int = 10)->bool:
                     sub_title = hub.find('span').text
                     if key_word in sub_title.lower():
                         exist = True
-                text = article.find('div', class_ = 'article-formatted-body article-formatted-body article-formatted-body_version-1').text
+                text_query = article.find('div', class_ = 'article-formatted-body article-formatted-body article-formatted-body_version-1')
+                if text_query == None:
+                    text_query = article.find('div', class_ = 'article-formatted-body article-formatted-body article-formatted-body_version-2')
+                text = text_query.text
                 if (key_word in title_text.lower() or 
                     exist or 
                     key_word in text.lower()):
 
-                    print(f'{time}-{title_text}-{title_url}')
+                    print(f'{time}-{title_text}-{url[:16]+title_url}')
             return True
         else:
             print('Connection failed')
